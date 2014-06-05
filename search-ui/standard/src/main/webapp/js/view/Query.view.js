@@ -90,6 +90,7 @@ define(function (require) {
 
         events: {
             'click .searchButton': 'search',
+            'click .saveButton': 'saveSearch',
             'click .resetButton': 'reset',
             'click .time': 'clearTime',
             'click .location': 'clearLocation',
@@ -316,6 +317,31 @@ define(function (require) {
 
         updateZoomOnResults: function () {
             this.zoomOnResults = this.model.get("bbox") || this.model.get("radius") ? true : false;
+        },
+
+        saveSearch: function() {
+            var options,
+                result,
+                queryParams = this.model.toJSON();
+
+            options = {
+                'queryParams': queryParams
+            };
+
+            result = new MetaCard.SearchResult(options);
+
+            result.url = '/service/catalog/savequery';
+
+            result.fetch({
+                data: result.getQueryParams(),
+                dataType: "json",
+                timeout: 300000,
+                error : function(){
+                    if (typeof console !== 'undefined') {
+                        console.error(arguments);
+                    }
+                }
+            });
         },
 
         search: function () {
