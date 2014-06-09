@@ -14,6 +14,7 @@
  **/
 package org.codice.ddf.ui.searchui.catalog.service;
 
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,11 @@ import org.junit.Test;
 import org.opengis.filter.Filter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TableMetadata;
 
 import ddf.catalog.CatalogFramework;
 import ddf.catalog.filter.FilterBuilder;
@@ -88,13 +94,29 @@ public class CatalogServiceTest {
                 "/data", "/commitlog", "/saved_caches");
         CassandraEmbeddedServer cassandraServer = new CassandraEmbeddedServer(cassandraConfig);
         SavedQueryOCM savedQueryOcm = new SavedQueryOCM(cassandraServer);
+        TableMetadata tableMetadata = cassandraServer.getTable(SavedQueryOCM.KEYSPACE_NAME, SavedQueryOCM.SAVED_QUERIES_TABLE_NAME);
+        assertNotNull(tableMetadata);
+        assertNotNull(tableMetadata.getColumn("id"));
+
         CatalogService catalogService = new CatalogService(filterBuilder, searchController, savedQueryOcm);
         
         Map<String, Object> queryMessage = new HashMap<String, Object>();
         queryMessage.put(CatalogService.GUID, "my-guid");
         queryMessage.put(CatalogService.PHRASE, "test phrase");
         catalogService.saveQuery(queryMessage, subject);
-        printFilter(catalogService.getQuery());
+        //printFilter(catalogService.getQuery());
+        Session session = cassandraServer.getSession(SavedQueryOCM.KEYSPACE_NAME);
+        Row row = session.execute("SELECT COUNT(*) FROM " + SavedQueryOCM.SAVED_QUERIES_TABLE_NAME).one();
+        LOGGER.info("num rows in saved_queries table = {}", row.getLong(0));
+        ResultSet resultSet = session.execute("SELECT * FROM " + SavedQueryOCM.SAVED_QUERIES_TABLE_NAME);
+        int count = 0;
+        for (Row savedQuery : resultSet.all()) {
+            LOGGER.info("savedQuery #{}", ++count);
+            LOGGER.info("uuid = {}", savedQuery.getUUID("id").toString());
+            LOGGER.info("userId = {}", savedQuery.getString("userId"));
+            //LOGGER.info("createdDate = {}", savedQuery.???);
+            LOGGER.info("filter = {}", savedQuery.getString("filter"));
+        }
     }
    
     private void printFilter(Filter filter) throws TransformerException {
