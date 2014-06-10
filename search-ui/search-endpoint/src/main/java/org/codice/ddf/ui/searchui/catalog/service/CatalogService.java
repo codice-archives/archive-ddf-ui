@@ -17,15 +17,18 @@ package org.codice.ddf.ui.searchui.catalog.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.xml.transform.TransformerException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.subject.Subject;
+import org.codice.ddf.persistentstorage.PersistentStore;
 import org.codice.ddf.ui.searchui.query.controller.SearchController;
 import org.codice.ddf.ui.searchui.query.model.Search;
 import org.codice.ddf.ui.searchui.query.model.SearchRequest;
@@ -39,6 +42,7 @@ import org.cometd.bayeux.server.ConfigurableServerChannel;
 import org.cometd.bayeux.server.ServerMessage;
 import org.cometd.bayeux.server.ServerSession;
 import org.cometd.server.ServerMessageImpl;
+import org.geotools.filter.FilterTransformer;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.DateTimeParser;
@@ -144,6 +148,7 @@ public class CatalogService {
     
     private Query query;
     private SavedQueryOCM savedQueryOcm;
+    private PersistentStore persistentStore;
 
     /**
      * Creates a new SearchService
@@ -154,10 +159,11 @@ public class CatalogService {
      *            - SearchController to handle async queries
      */
     public CatalogService(FilterBuilder filterBuilder, 
-            SearchController searchController, SavedQueryOCM savedQueryOcm) {
+            SearchController searchController, PersistentStore persistentStore) {
         this.filterBuilder = filterBuilder;
         this.searchController = searchController;
-        this.savedQueryOcm = savedQueryOcm;
+        this.persistentStore = persistentStore;
+        this.savedQueryOcm = new SavedQueryOCM(persistentStore);
     }
 
     /**
@@ -276,17 +282,41 @@ public class CatalogService {
         SearchRequest searchRequest = new SearchRequest(sourceIds, query, guid);
         String username = subject.getPrincipal().toString();
         LOGGER.info("username = {}", username);
+        LOGGER.info("Storing in saved_queries table");
         savedQueryOcm.store(searchRequest, username);
-//
-//        try {
-//            // Hand off to the search controller for the actual query
-//            searchController.executeQuery(searchRequest, serverSession, subject);
-//        } catch (RuntimeException re) {
-//            LOGGER.warn("Exception while executing a query", re);
-//        }
+        
+        LOGGER.info("Storing in ddf.catalog table with properties map");
+        FilterTransformer transform = new FilterTransformer();
+        transform.setIndentation(2);
+        String filterXml = null;
+        try {
+            filterXml = transform.transform(query);
+            String normalizedFilterXml = filterXml.replaceAll("\n",  "").replaceAll("'", "''");
+            Map<String, Object> entryData = new HashMap<String, Object>();
+            entryData.put("filterXml", normalizedFilterXml);
+            if (sort != null) {
+                entryData.put("sort", sort);
+            }
+            if (localCount != null) {
+                entryData.put("page_size", localCount);
+            }
+            if (startIndex != null) {
+                entryData.put("start_index", startIndex);
+            }
+            if (maxTimeout != null) {
+                entryData.put("timeout", maxTimeout);
+            }
+            if (persistentStore != null) {
+                LOGGER.info("Saving entry in persistentStore");
+                persistentStore.addEntry("saved_query", entryData);
+            } else {
+                LOGGER.info("persistentStore is NULL");
+            }
+        } catch (TransformerException e) {
+            LOGGER.error("Cannot convert query to filter XML", e);
+        }
 
         LOGGER.debug("EXITING {}", methodName);
-
     }
     
     Query getQuery() {

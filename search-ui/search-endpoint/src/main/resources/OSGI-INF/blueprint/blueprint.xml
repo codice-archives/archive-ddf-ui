@@ -30,13 +30,21 @@
     <reference-list id="requestHandlerList" interface="ddf.security.service.TokenRequestHandler"
                     availability="optional"/>
 
+    <reference id="cassandraServer" interface="org.codice.ddf.persistentstorage.PersistentStore" />
+    
+    <!-- 
+    <bean id="savedQueryOcm" class="org.codice.ddf.ui.searchui.catalog.service.SavedQueryOCM">
+        <argument ref="cassandraServer"/>
+    </bean>
+    -->
+    
     <bean class="org.codice.ddf.ui.searchui.query.endpoint.CometdEndpoint"
           depends-on="defaultCometdServlet" init-method="init" destroy-method="destroy">
         <argument ref="comet"/>
         <argument ref="catalog"/>
         <argument ref="filterBuilder"/>
         <argument ref="blueprintBundleContext" />
+        <argument ref="cassandraServer" />
     </bean>
-
 
 </blueprint>

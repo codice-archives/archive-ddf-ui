@@ -14,17 +14,19 @@
  **/
 package org.codice.ddf.ui.searchui.catalog.service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.xml.transform.TransformerException;
 
-import org.codice.ddf.platform.cassandra.embedded.CassandraEmbeddedServer;
+import org.codice.ddf.persistentstorage.PersistentStore;
 import org.codice.ddf.ui.searchui.query.model.SearchRequest;
 import org.geotools.filter.FilterTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Session;
+//import com.datastax.driver.core.Session;
 
 import ddf.catalog.operation.Query;
 
@@ -37,12 +39,12 @@ public class SavedQueryOCM {
     static final String SAVED_QUERIES_TABLE_NAME = "saved_queries";
     
     private static final String SAVED_QUERIES_TABLE_SCHEMA = 
-//            "id uuid PRIMARY KEY, userId text, createdDate timeuuid, filter text";
-        "id uuid PRIMARY KEY, userId text, createdDate timeuuid";
+        "id uuid PRIMARY KEY, userId text, createdDate timeuuid, filter text";
+        //"id uuid PRIMARY KEY, userId text, createdDate timeuuid";
     
-    private CassandraEmbeddedServer cassandraServer;
+    private PersistentStore cassandraServer;
 
-    public SavedQueryOCM(CassandraEmbeddedServer cassandraServer) {
+    public SavedQueryOCM(PersistentStore cassandraServer) {
         this.cassandraServer = cassandraServer;
         this.cassandraServer.createKeyspace(KEYSPACE_NAME);
         this.cassandraServer.createTable(KEYSPACE_NAME, SAVED_QUERIES_TABLE_NAME, SAVED_QUERIES_TABLE_SCHEMA);
@@ -60,13 +62,19 @@ public class SavedQueryOCM {
             return false;
         }
         
-        Session session = this.cassandraServer.getSession(KEYSPACE_NAME); 
+//        Session session = this.cassandraServer.getSession(KEYSPACE_NAME); 
         String normalizedFilterXml = filterXml.replaceAll("\n",  "").replaceAll("'", "''");
         
         String insertCql = "INSERT INTO " + KEYSPACE_NAME + "." + SAVED_QUERIES_TABLE_NAME + "(id, userId, createdDate, filter) VALUES (" +
             UUID.randomUUID().toString() + ", '" + username + "', now(), '" + normalizedFilterXml + "')";
         LOGGER.info("insertCql = {}", insertCql);
-        session.execute(insertCql);
+//        session.execute(insertCql);
+        cassandraServer.addEntry(KEYSPACE_NAME, SAVED_QUERIES_TABLE_NAME, insertCql);
+        /*TODO
+        Map<String, Object> entryData = new HashMap<String, Object>();
+        entryData.put("filterXml", normalizedFilterXml);
+        cassandraServer.addEntry(KEYSPACE_NAME, SAVED_QUERIES_TABLE_NAME, UUID.randomUUID().toString(), username, entryData);
+        END TODO*/
         return true;
     }
 }

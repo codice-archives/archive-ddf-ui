@@ -14,13 +14,16 @@
  **/
 package org.codice.ddf.ui.searchui.query.endpoint;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
+import org.codice.ddf.persistentstorage.PersistentStore;
 import org.codice.ddf.ui.searchui.query.controller.NotificationController;
 import org.cometd.bayeux.ChannelId;
 import org.cometd.bayeux.MarkedReference;
@@ -123,7 +126,7 @@ public class CometdEndpointTest {
         // Create the CometdEndpoint, passing in the mocked CometdServlet
         cometdEndpoint = new CometdEndpoint(cometdServlet,
                 mock(CatalogFramework.class), mock(FilterBuilder.class), 
-                mock(BundleContext.class));
+                mock(BundleContext.class), mock(PersistentStore.class));
     }
 
     /**

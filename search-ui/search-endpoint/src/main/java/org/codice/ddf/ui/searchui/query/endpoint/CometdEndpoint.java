@@ -16,6 +16,9 @@ package org.codice.ddf.ui.searchui.query.endpoint;
 
 import javax.servlet.ServletException;
 
+import org.codice.ddf.persistentstorage.PersistentStore;
+import org.codice.ddf.ui.searchui.catalog.service.CatalogService;
+import org.codice.ddf.ui.searchui.catalog.service.SavedQueryOCM;
 import org.codice.ddf.ui.searchui.query.controller.ActivityController;
 import org.codice.ddf.ui.searchui.query.controller.NotificationController;
 import org.codice.ddf.ui.searchui.query.controller.SearchController;
@@ -54,6 +57,8 @@ public class CometdEndpoint {
     NotificationController notificationController;
     ActivityController activityController;
     SearchService searchService;
+    CatalogService catalogService;
+    PersistentStore persistentStore;
     
 
     /**
@@ -67,9 +72,10 @@ public class CometdEndpoint {
      *            - FilterBuilder for the SearchService to use
      */
     public CometdEndpoint(CometdServlet cometdServlet, CatalogFramework framework, 
-            FilterBuilder filterBuilder, BundleContext bundleContext) {
+            FilterBuilder filterBuilder, BundleContext bundleContext, PersistentStore persistentStore) {
         this.cometdServlet = cometdServlet;
         this.filterBuilder = filterBuilder;
+        this.persistentStore = persistentStore;
         this.searchController = new SearchController(framework);
         this.notificationController = new NotificationController(bundleContext);
         this.activityController = new ActivityController(bundleContext);
@@ -121,7 +127,9 @@ public class CometdEndpoint {
                  
             searchController.setBayeuxServer(bayeuxServer);
             searchService = new SearchService(filterBuilder, searchController);
+            catalogService = new CatalogService(filterBuilder, searchController, persistentStore);
             cometdAnnotationProcessor.process(searchService);
+            cometdAnnotationProcessor.process(catalogService);
             cometdAnnotationProcessor.process(notificationController);
             cometdAnnotationProcessor.process(activityController);
         }
@@ -137,6 +145,10 @@ public class CometdEndpoint {
 
     public SearchService getSearchService() {
         return searchService;
+    }
+
+    public CatalogService getCatalogService() {
+        return catalogService;
     }
 
 }
