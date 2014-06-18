@@ -17,7 +17,6 @@ package org.codice.ddf.ui.searchui.catalog.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,8 @@ import javax.xml.transform.TransformerException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.subject.Subject;
-import org.codice.ddf.persistentstorage.PersistentStore;
+import org.codice.ddf.persistentstorage.api.PersistentStore;
+import org.codice.ddf.persistentstorage.api.PersistentStoreMap;
 import org.codice.ddf.ui.searchui.query.controller.SearchController;
 import org.codice.ddf.ui.searchui.query.model.Search;
 import org.codice.ddf.ui.searchui.query.model.SearchRequest;
@@ -147,7 +147,6 @@ public class CatalogService {
     private ServerSession serverSession;
     
     private Query query;
-    private SavedQueryOCM savedQueryOcm;
     private PersistentStore persistentStore;
 
     /**
@@ -163,7 +162,6 @@ public class CatalogService {
         this.filterBuilder = filterBuilder;
         this.searchController = searchController;
         this.persistentStore = persistentStore;
-        this.savedQueryOcm = new SavedQueryOCM(persistentStore);
     }
 
     /**
@@ -262,8 +260,6 @@ public class CatalogService {
 
         Long localCount = count;
 
-        // Build the SearchRequest and then hand off to the controller for the actual query
-
         // honor maxResults if count is not specified
         if (localCount == null && maxResults != null) {
             LOGGER.debug("setting count to: {}", maxResults);
@@ -279,43 +275,36 @@ public class CatalogService {
         addTypeFilters(filters, type);
 
         query = createQuery(andFilters(filters), startIndex, localCount, sort, maxTimeout);
-        SearchRequest searchRequest = new SearchRequest(sourceIds, query, guid);
         String username = subject.getPrincipal().toString();
         LOGGER.info("username = {}", username);
-        LOGGER.info("Storing in saved_queries table");
-        savedQueryOcm.store(searchRequest, username);
         
-        LOGGER.info("Storing in ddf.catalog table with properties map");
         FilterTransformer transform = new FilterTransformer();
         transform.setIndentation(2);
         String filterXml = null;
         try {
             filterXml = transform.transform(query);
             String normalizedFilterXml = filterXml.replaceAll("\n",  "").replaceAll("'", "''");
-            Map<String, Object> entryData = new HashMap<String, Object>();
-            entryData.put("filterXml", normalizedFilterXml);
-            if (sort != null) {
-                entryData.put("sort", sort);
-            }
+            PersistentStoreMap entryData = new PersistentStoreMap();
+            entryData.addTextProperty("userid",  username);
+            entryData.addXmlProperty("filter", normalizedFilterXml);
+            entryData.addTextProperty("sort",  sort);
+            // Need null checks to prevent NPE when unboxing done for casting
             if (localCount != null) {
-                entryData.put("page_size", localCount);
+                entryData.addIntProperty("max_results", (int) (long) localCount);
             }
             if (startIndex != null) {
-                entryData.put("start_index", startIndex);
+                entryData.addIntProperty("start_index", (int) (long) startIndex);
             }
             if (maxTimeout != null) {
-                entryData.put("timeout", maxTimeout);
+                entryData.addLongProperty("max_timeout", maxTimeout);
             }
-            if (persistentStore != null) {
-                LOGGER.info("Saving entry in persistentStore");
-                persistentStore.addEntry("saved_query", entryData);
-            } else {
-                LOGGER.info("persistentStore is NULL");
-            }
+            entryData.addTextSetProperty("source_ids",  sourceIds);
+            LOGGER.info("Saving entry in persistentStore");
+            persistentStore.addEntry(PersistentStore.SAVED_QUERY_TYPE, entryData);
         } catch (TransformerException e) {
             LOGGER.error("Cannot convert query to filter XML", e);
         }
-
+        
         LOGGER.debug("EXITING {}", methodName);
     }
     

@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
-import org.codice.ddf.persistentstorage.PersistentStore;
+import org.codice.ddf.persistentstorage.api.PersistentStore;
 import org.codice.ddf.ui.searchui.query.controller.NotificationController;
 import org.cometd.bayeux.ChannelId;
 import org.cometd.bayeux.MarkedReference;

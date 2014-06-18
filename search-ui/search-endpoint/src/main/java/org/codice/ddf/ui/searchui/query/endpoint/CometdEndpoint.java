@@ -16,9 +16,8 @@ package org.codice.ddf.ui.searchui.query.endpoint;
 
 import javax.servlet.ServletException;
 
-import org.codice.ddf.persistentstorage.PersistentStore;
+import org.codice.ddf.persistentstorage.api.PersistentStore;
 import org.codice.ddf.ui.searchui.catalog.service.CatalogService;
-import org.codice.ddf.ui.searchui.catalog.service.SavedQueryOCM;
 import org.codice.ddf.ui.searchui.query.controller.ActivityController;
 import org.codice.ddf.ui.searchui.query.controller.NotificationController;
 import org.codice.ddf.ui.searchui.query.controller.SearchController;

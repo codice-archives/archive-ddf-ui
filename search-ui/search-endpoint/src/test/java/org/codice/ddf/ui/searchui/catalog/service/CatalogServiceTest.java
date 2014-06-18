@@ -14,7 +14,6 @@
  **/
 package org.codice.ddf.ui.searchui.catalog.service;
 
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,7 +32,8 @@ import org.apache.shiro.session.mgt.SimpleSession;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.apache.shiro.subject.Subject;
-import org.codice.ddf.persistentstorage.PersistentStore;
+import org.codice.ddf.persistentstorage.api.PersistentStore;
+import org.codice.ddf.persistentstorage.impl.PersistentStoreImpl;
 import org.codice.ddf.platform.cassandra.embedded.CassandraConfig;
 import org.codice.ddf.platform.cassandra.embedded.CassandraEmbeddedServer;
 import org.codice.ddf.ui.searchui.query.controller.SearchController;
@@ -42,13 +42,13 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.filter.Filter;
+import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TableMetadata;
 
 import ddf.catalog.CatalogFramework;
 import ddf.catalog.filter.FilterBuilder;
@@ -95,20 +95,20 @@ public class CatalogServiceTest {
         // Simulates what blueprint would do
         CassandraConfig cassandraConfig = new CassandraConfig("DDF Cluster", "conf/cassandra.yaml", 9160, 9042, 7000, 7001, 
                 "/data", "/commitlog", "/saved_caches");
-        PersistentStore cassandraServer = new CassandraEmbeddedServer("ddf", cassandraConfig);
-//        SavedQueryOCM savedQueryOcm = new SavedQueryOCM(cassandraServer);
-//        TableMetadata tableMetadata = cassandraServer.getTable(SavedQueryOCM.KEYSPACE_NAME, SavedQueryOCM.SAVED_QUERIES_TABLE_NAME);
-//        assertNotNull(tableMetadata);
-//        assertNotNull(tableMetadata.getColumn("id"));
+        CassandraEmbeddedServer cassandraServer = new CassandraEmbeddedServer("ddf", cassandraConfig);
+        BundleContext context = mock(BundleContext.class);
+        PersistentStore persistentStore = new PersistentStoreImpl("http://localhost:8181/solr");
 
-        CatalogService catalogService = new CatalogService(filterBuilder, searchController, cassandraServer);
+        CatalogService catalogService = new CatalogService(filterBuilder, searchController, persistentStore);
         
         Map<String, Object> queryMessage = new HashMap<String, Object>();
         queryMessage.put(CatalogService.GUID, "my-guid");
         queryMessage.put(CatalogService.PHRASE, "test phrase");
         catalogService.saveQuery(queryMessage, subject);
         //printFilter(catalogService.getQuery());
-        Session session = cassandraServer.getSession(SavedQueryOCM.KEYSPACE_NAME);
+        /*OMIT
+        CassandraClient cassandraClient = new CassandraClient("localhost", 9042);
+        Session session = cassandraServer.getSession("ddf");
         Row row = session.execute("SELECT COUNT(*) FROM " + SavedQueryOCM.SAVED_QUERIES_TABLE_NAME).one();
         LOGGER.info("num rows in saved_queries table = {}", row.getLong(0));
         ResultSet resultSet = session.execute("SELECT * FROM " + SavedQueryOCM.SAVED_QUERIES_TABLE_NAME);
@@ -120,6 +120,7 @@ public class CatalogServiceTest {
             //LOGGER.info("createdDate = {}", savedQuery.???);
             LOGGER.info("filter = {}", savedQuery.getString("filter"));
         }
+        END OMIT*/
     }
    
     private void printFilter(Filter filter) throws TransformerException {
