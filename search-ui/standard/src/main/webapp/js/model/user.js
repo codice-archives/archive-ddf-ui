@@ -17,11 +17,11 @@ define([
     ], function (Backbone) {
     'use strict';
 
-    var User = {};
+    var guestUser = 'guest', guestPass = 'guest', User = {};
 
     User.Model = Backbone.RelationalModel.extend({
         isGuestUser: function() {
-            return this.get('username') === this.guestUser;
+            return this.get('username') === guestUser;
         }
     });
 
@@ -40,8 +40,8 @@ define([
         url: '/service/user',
         syncUrl: "/search/standard/user",
         useAjaxSync: false,
-        guestUser: 'guest',
-        guestPass: 'guest',
+        guestUser: guestUser,
+        guestPass: guestPass,
         parse: function (resp) {
             if (resp.data) {
                 return resp.data;
