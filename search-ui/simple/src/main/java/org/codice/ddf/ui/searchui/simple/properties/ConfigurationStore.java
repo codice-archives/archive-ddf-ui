@@ -15,6 +15,8 @@
 
 package org.codice.ddf.ui.searchui.simple.properties;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.webconsole.BrandingPlugin;
 
@@ -39,7 +41,7 @@ public class ConfigurationStore {
 
     private BrandingPlugin branding;
     
-    private Integer httpSessionTimeoutInSeconds;
+    private int httpSessionTimeoutInSeconds;
 
     private ConfigurationStore() {
         header = "";
@@ -109,12 +111,12 @@ public class ConfigurationStore {
         this.branding = branding;
     }
     
-    public Integer getHttpSessionTimeout() {
+    public int getHttpSessionTimeout() {
         return httpSessionTimeoutInSeconds;
     }
     
-    public void setHttpSessionTimeout(Integer timeoutInMinutes) {
-        this.httpSessionTimeoutInSeconds = timeoutInMinutes * 60;
+    public void setHttpSessionTimeout(int timeoutInMinutes) {
+        this.httpSessionTimeoutInSeconds = (int)TimeUnit.MINUTES.toSeconds(timeoutInMinutes);
     }
 
     public Object clone() throws CloneNotSupportedException {

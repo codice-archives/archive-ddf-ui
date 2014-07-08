@@ -15,38 +15,27 @@
  -->
 <metatype:MetaData xmlns:metatype="http://www.osgi.org/xmlns/metatype/v1.0.0">
 
-	<OCD name="Simple Search UI" id="org.codice.ddf.ui.search.simple.properties">
-		<AD
-			description="Specifies the header text to be rendered on the generated Query Page"
-			name="Header" id="header" required="true" type="String" 
-			default="" 
-		/>
-		<AD
-			description="Specifies the footer text to be rendered on the generated Query Page"
-			name="Footer" id="footer" required="true" type="String" 
-			default="" 
-		/>
-		<AD
-			description="Specifies the Text Color of the Header and Footer.  Use html css colors or #rrggbb."
-			name="Text Color" id="color" required="true" type="String" 
-			default="" 
-		/>
-		<AD
-			description="Specifies the Background Color of the Header and Footer.  Use html css colors or #rrggbb."
-			name="Background Color" id="background" required="true" type="String" 
-			default="" 
-		/>
-		
-        <AD 
-            description="Http Session Timeout in minutes."
-            name="Http Session Timeout (minutes)" id="httpSessionTimeout" required="true"
-            type="Integer" 
-            default="5"
-        />
-	</OCD>
+    <OCD name="Simple Search UI" id="org.codice.ddf.ui.search.simple.properties">
+        <AD
+            description="Specifies the header text to be rendered on the generated Query Page"
+            name="Header" id="header" required="true" type="String" default="" />
+        <AD
+            description="Specifies the footer text to be rendered on the generated Query Page"
+            name="Footer" id="footer" required="true" type="String" default="" />
+        <AD
+            description="Specifies the Text Color of the Header and Footer.  Use html css colors or #rrggbb."
+            name="Text Color" id="color" required="true" type="String" default="" />
+        <AD
+            description="Specifies the Background Color of the Header and Footer.  Use html css colors or #rrggbb."
+            name="Background Color" id="background" required="true" type="String"
+            default="" />
 
-	<Designate 	pid="org.codice.ddf.ui.search.simple.properties">
-		<Object ocdref="org.codice.ddf.ui.search.simple.properties" />
-	</Designate>
+        <AD description="HTTP Session Timeout in minutes." name="Http Session Timeout (minutes)"
+            id="httpSessionTimeout" required="true" type="Integer" default="5" />
+    </OCD>
+
+    <Designate pid="org.codice.ddf.ui.search.simple.properties">
+        <Object ocdref="org.codice.ddf.ui.search.simple.properties" />
+    </Designate>
 
 </metatype:MetaData>
