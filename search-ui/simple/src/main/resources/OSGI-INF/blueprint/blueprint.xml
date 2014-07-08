@@ -23,6 +23,8 @@
 		<cm:managed-properties persistent-id="org.codice.ddf.ui.search.simple.properties"
 			update-strategy="container-managed" />
         <property name="branding" ref="webBranding" />
+        <!-- http session timeout in minutes -->
+        <property name="httpSessionTimeout" value="5" />
 	</bean>
 	
 </blueprint>

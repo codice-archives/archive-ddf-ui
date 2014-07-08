@@ -38,6 +38,8 @@ public class ConfigurationStore {
     private String background = "";
 
     private BrandingPlugin branding;
+    
+    private Integer httpSessionTimeoutInSeconds;
 
     private ConfigurationStore() {
         header = "";
@@ -105,6 +107,14 @@ public class ConfigurationStore {
 
     public void setBranding(BrandingPlugin branding) {
         this.branding = branding;
+    }
+    
+    public Integer getHttpSessionTimeout() {
+        return httpSessionTimeoutInSeconds;
+    }
+    
+    public void setHttpSessionTimeout(Integer timeoutInMinutes) {
+        this.httpSessionTimeoutInSeconds = timeoutInMinutes * 60;
     }
 
     public Object clone() throws CloneNotSupportedException {

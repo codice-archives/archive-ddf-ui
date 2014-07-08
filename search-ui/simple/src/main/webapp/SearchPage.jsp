@@ -14,6 +14,10 @@
  **/
  -->
 
+<%
+   session.setMaxInactiveInterval(ConfigurationStore.getInstance().getHttpSessionTimeout());
+%> 
+
 <html>
 <head>
 <meta charset="utf-8">
