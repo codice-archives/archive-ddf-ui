@@ -30,7 +30,7 @@
             name="Background Color" id="background" required="true" type="String"
             default="" />
 
-        <AD description="HTTP Session Timeout in minutes." name="Http Session Timeout (minutes)"
+        <AD description="HTTP Session Timeout in minutes." name="HTTP Session Timeout (minutes)"
             id="httpSessionTimeout" required="true" type="Integer" default="5" />
     </OCD>
 
