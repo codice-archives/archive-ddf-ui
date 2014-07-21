@@ -14,10 +14,9 @@
  **/
 package org.codice.ddf.ui.searchui.query.controller;
 
+
 import java.util.Map;
-
 import net.minidev.json.JSONObject;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
@@ -162,24 +161,24 @@ public class NotificationController extends AbstractEventController {
 
         String userId = getUserId(serverSession, subject);
 
-        Map<String, Object> message = serverMessage.getDataAsMap();
+        Object[] notifications = (Object[]) serverMessage.getDataAsMap().get("data");
 
-        if (message != null) {
-            if ((message.get("action")).equals("remove")) {
-                if (message.get("id") != null) {
-                    String notificationId = (String) message.get("id");
-                    try {
-                        this.persistentStore.delete(PersistentStore.NOTIFICATION_TYPE, 
-                                "id = '" + notificationId + "'");
-                    } catch (PersistenceException e) {
-                        throw new IllegalArgumentException("Unable to delete notification with id = " + notificationId);
-                    }
-                } else {
-                    throw new IllegalArgumentException("message.get('id') returned null.");
-                }
-            } else {
-                throw new IllegalArgumentException("message is null");
-            }
+        for (Object notificationObject : notifications) {
+            Map notification = (Map) notificationObject;
+            String id = (String) notification.get("id");
+            String action = (String) notification.get("action");
+
+            if (action != null) {
+				if ("remove".equals(action)) {
+					if(StringUtils.isNotBlank(id)) {
+						this.notificationStore.removeNotification(id, userId);
+					} else {
+						throw new IllegalArgumentException("Message id is missing.");
+					}
+				}
+			} else {
+				throw new IllegalArgumentException("Message action is null.");
+			}
         }
     }
 }

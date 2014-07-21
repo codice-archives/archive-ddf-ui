@@ -29,10 +29,12 @@ define([ 'backbone',
 
     ich.addTemplate('notificationTemplate', messageTemplate);
     ich.addTemplate('titleTemplate', titleTemplate);
-    
-    var stack_context;
 
     var currentTime = moment();
+
+    //notificationStack and isNotificationOpen used to display only one popup notification at a time
+    var notificationStack = [];
+    var isNotificationOpen = false;
     
     NotificationView.NotificationItemView = Backbone.Marionette.ItemView.extend({
 
@@ -50,23 +52,29 @@ define([ 'backbone',
         },
 
         createNotification: function() {
-            if (typeof stack_context === "undefined") stack_context = {
-                "dir1": "up",
-                "dir2": "left",
-                "firstpos1": 25,
-                "firstpos2": 25,
-                "context": $("#notifications")
-            };
 
             var notification = $.pnotify({
                 title : ich.titleTemplate(this.model.toJSON()),
                 text : this.constructNotificationText(),
                 icon : "fa fa-exclamation-circle notification-title",
+                nonblock: true,
+                auto_display : false,
                 hide : true,
-                closer_hover : false,
-                sticker: false,
+                delay: 3000,
                 history: false,
-                stack: stack_context,
+                after_close: function () {
+                   if (notificationStack.length) {
+                        notificationStack.shift().pnotify_display();
+                   } else {
+                        isNotificationOpen = false;
+                   }
+                },
+                stack: {"dir1": "up",
+                        "dir2": "left",
+                        "spacing1": 0,
+                        "spacing2": 0,
+                        "firstpos1": 25,
+                        "firstpos2": 25},
                 //need to define custom styling since the default pnotify fontawesome styling makes every notice a warning.
                 styling: {
                     container: "alert",
@@ -78,7 +86,6 @@ define([ 'backbone',
                     success_icon: "fa fa-check",
                     error: "alert-danger",
                     error_icon: "fa fa-warning",
-                    closer: "fa fa-times",
                     pin_up: "fa fa-pause",
                     pin_down: "fa fa-play",
                     hi_menu: "well",
@@ -87,7 +94,14 @@ define([ 'backbone',
                     hi_hnd: "fa fa-chevron-down"
                 }
             });
-            this.notification = notification;
+
+            if (isNotificationOpen === false) {
+                 this.notification = notification;
+                 this.notification.pnotify_display();
+                 isNotificationOpen = true;
+            } else {
+                notificationStack.push(notification);
+            }
         },
 
         openNotification: function(noti) {
