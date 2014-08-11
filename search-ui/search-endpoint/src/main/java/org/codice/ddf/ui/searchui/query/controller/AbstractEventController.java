@@ -79,7 +79,7 @@ public abstract class AbstractEventController implements EventHandler {
 
     protected PersistentStore persistentStore;
 
-    private EventAdmin eventAdmin;
+    protected EventAdmin eventAdmin;
 
     /**
      * Establishes {@code AbstractEventController} as a listener to events published by the OSGi
@@ -193,52 +193,6 @@ public abstract class AbstractEventController implements EventHandler {
         } else {
             LOGGER.debug("userSessionMap does not contain a user with the id \"{}\"", userId);
         }
-    }
-
-    @Listener("/service/action")
-    public void actionSession(final ServerSession serverSession, ServerMessage serverMessage) {
-        LOGGER.debug("\nServerSession: {}\nServerMessage: {}", serverSession, serverMessage);
-
-        if (null == serverSession) {
-            throw new IllegalArgumentException("ServerSession is null");
-        }
-
-        if (null == serverMessage) {
-            throw new IllegalArgumentException("ServerMessage is null");
-        }
-
-        Map<String, Object> actionMessage = serverMessage.getDataAsMap();
-        String actionName = (String) actionMessage.get("action");
-        String downloadIdentifier = (String) actionMessage.get("id");
-        LOGGER.debug("\nAction: {}", actionName);
-
-        if (StringUtils.equalsIgnoreCase(actionName, "cancel")) {
-            Subject subject = null;
-            try {
-                subject = SecurityUtils.getSubject();
-            } catch (Exception e) {
-                LOGGER.debug("Couldn't grab user subject from Shiro.", e);
-            }
-
-            String userId = getUserId(serverSession, subject);
-
-            if (null == userId) {
-                throw new IllegalArgumentException("User ID is null");
-            }
-            if (null == downloadIdentifier) {
-                throw new IllegalArgumentException("Metadata ID is null");
-            }
-
-            String downloadId = userId + downloadIdentifier;
-
-            JSONObject jsonPropMap = new JSONObject();
-            jsonPropMap.put(ActivityEvent.DOWNLOAD_ID_KEY, downloadId);
-
-            Event event = new Event(ActivityEvent.EVENT_TOPIC_DOWNLOAD_CANCEL, jsonPropMap);
-            eventAdmin.postEvent(event);
-
-        }
-
     }
 
     /**
