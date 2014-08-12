@@ -210,9 +210,7 @@ public class ActivityController extends AbstractEventController {
                     } else {
                         throw new IllegalArgumentException("Message id is null");
                     }
-                }
-
-                if ("cancel".equals(action)) {
+                } else if ("cancel".equals(action)) {
 
                     if (null == userId) {
                         throw new IllegalArgumentException("User ID is null");
