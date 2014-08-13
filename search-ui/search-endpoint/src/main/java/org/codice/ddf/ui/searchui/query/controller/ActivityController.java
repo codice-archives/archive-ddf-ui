@@ -187,7 +187,10 @@ public class ActivityController extends AbstractEventController {
         String userId = getUserId(serverSession, subject);
 
         Object activitiesPreCast = serverMessage.getDataAsMap().get("data");
-        Object[] activities = activitiesPreCast instanceof List ? ((List)activitiesPreCast).toArray() : (Object[])activitiesPreCast;
+
+        Object[] activities = activitiesPreCast instanceof List ?
+                    ((List) activitiesPreCast).toArray() :
+                    (Object[]) activitiesPreCast;
 
         for (Object activityObject : activities) {
             Map activity = (Map) activityObject;
@@ -207,6 +210,21 @@ public class ActivityController extends AbstractEventController {
                     } else {
                         throw new IllegalArgumentException("Message id is null");
                     }
+                } else if ("cancel".equals(action)) {
+
+                    if (null == userId) {
+                        throw new IllegalArgumentException("User ID is null");
+                    }
+                    if (null == id) {
+                        throw new IllegalArgumentException("Metadata ID is null");
+                    }
+
+                    JSONObject jsonPropMap = new JSONObject();
+                    jsonPropMap.put(ActivityEvent.DOWNLOAD_ID_KEY, id);
+
+                    Event event = new Event(ActivityEvent.EVENT_TOPIC_DOWNLOAD_CANCEL, jsonPropMap);
+                    eventAdmin.postEvent(event);
+
                 }
             } else {
                 throw new IllegalArgumentException("Message action is null.");
