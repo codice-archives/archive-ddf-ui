@@ -306,8 +306,12 @@ public class ConfigurationStore {
             }
         }
 
-        String proxiedProvider = getProxiedProvider(terrainProvider, false);
-        proxiedTerrainProvider = proxiedProvider;
+        if (StringUtils.isNotBlank(terrainProvider)) {
+            String proxiedProvider = getProxiedProvider(terrainProvider, false);
+            proxiedTerrainProvider = proxiedProvider;
+        } else {
+            proxiedTerrainProvider = "";
+        }
     }
 
     private String getProxiedProvider(String provider, boolean imagery) {
@@ -325,9 +329,9 @@ public class ConfigurationStore {
                     incrementer++;
                     String endpointName = httpProxy.start(bundleName, url, timeout);
                     if (imagery) {
-                        imageryEndpoints.add(SERVLET_PATH + "/" + endpointName);
+                        imageryEndpoints.add(endpointName);
                     } else {
-                        terrainEndpoint = SERVLET_PATH + "/" + endpointName;
+                        terrainEndpoint = endpointName;
                     }
                     proxiedProviderParts.append(QUOTE + URL + QUOTE + ":" + QUOTE + SERVLET_PATH + "/" + endpointName + QUOTE + ",");
                 } catch (Exception e) {
