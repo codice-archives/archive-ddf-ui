@@ -71,30 +71,43 @@ define(['underscore',
 
                 if(properties.imageryProviders) {
                     _.each(properties.imageryProviders, function(item) {
-                        var imageryProvider = $.parseJSON(item);
-                        var key = Object.keys(imageryProvider)[0];
-                        var type = imageryProviderTypes[key];
-                        var initObj = imageryProvider[key];
-                        if (!options.imageryProvider) {
-                            options.imageryProvider = new type(initObj);
-                            viewer = new Cesium.Viewer(mapDivId, options);
-                        } else {
-                            var layer = viewer.scene.imageryLayers.addImageryProvider(new type(initObj));
-                            if(initObj.alpha) {
-                                layer.alpha = parseFloat(initObj.alpha, 10);
+                        try {
+                            var imageryProvider = $.parseJSON(item);
+                            var key = Object.keys(imageryProvider)[0];
+                            var type = imageryProviderTypes[key];
+                            var initObj = imageryProvider[key];
+                            if (!options.imageryProvider) {
+                                options.imageryProvider = new type(initObj);
+                                viewer = new Cesium.Viewer(mapDivId, options);
                             } else {
-                                layer.alpha = 0.5;
+                                var layer = viewer.scene.imageryLayers.addImageryProvider(new type(initObj));
+                                if (initObj.alpha) {
+                                    layer.alpha = parseFloat(initObj.alpha, 10);
+                                } else {
+                                    layer.alpha = 0.5;
+                                }
                             }
-
+                        } catch (e) {
+                            if (typeof console !== 'undefined') {
+                                console.error('Unable to parse imagery provider configuration.', item, e);
+                            }
                         }
                     });
 
-                    var terrainProvider = $.parseJSON(properties.terrainProvider);
-                    var key = Object.keys(terrainProvider)[0];
-                    var type = imageryProviderTypes[key];
-                    var initObj = terrainProvider[key];
-                    if (viewer) {
-                        viewer.scene.terrainProvider = new type(initObj);
+                    if (properties.terrainProvider) {
+                        try {
+                            var terrainProvider = $.parseJSON(properties.terrainProvider);
+                            var key = Object.keys(terrainProvider)[0];
+                            var type = imageryProviderTypes[key];
+                            var initObj = terrainProvider[key];
+                            if (viewer) {
+                                viewer.scene.terrainProvider = new type(initObj);
+                            }
+                        } catch (e) {
+                            if (typeof console !== 'undefined') {
+                                console.error('Unable to parse terrain provider configuration.', properties.terrainProvider, e);
+                            }
+                        }
                     }
                 }
 
