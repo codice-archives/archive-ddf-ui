@@ -76,7 +76,7 @@ public class ConfigurationStore {
 
     private String terrainEndpoint;
 
-    private Boolean isSignIn = false;
+    private Boolean isSignIn = true;
 
     private Boolean isTask = false;
 
