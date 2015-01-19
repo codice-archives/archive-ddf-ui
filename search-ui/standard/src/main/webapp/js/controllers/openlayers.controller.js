@@ -19,9 +19,10 @@ define(['underscore',
         'wreqr',
         'properties',
         'js/view/openlayers.metacard',
+        'js/model/Metacard',
         'jquery',
         'js/view/openlayers.geocoder'
-    ], function (_, Marionette, ol, Q, wreqr, properties, OpenlayersMetacard, $, geocoder) {
+    ], function (_, Marionette, ol, Q, wreqr, properties, OpenlayersMetacard, Metacard, $, geocoder) {
         "use strict";
 
         var imageryProviderTypes = {
@@ -53,34 +54,25 @@ define(['underscore',
                 var map;
                 if (properties.imageryProviders) {
                     var layers = [];
-                    _.each(properties.imageryProviders, function (item) {
-                        var imageryProvider;
-                        try {
-                            imageryProvider = $.parseJSON(item);
-                        } catch (e) {
-                            if (typeof console !== 'undefined') {
-                                console.error('Unable to parse imagery provider configuration:', item, e);
-                            }
-                        }
-
+                    _.each(properties.imageryProviders, function (imageryProvider) {
                         if (imageryProvider) {
-                            var key = Object.keys(imageryProvider)[0];
-                            var type = imageryProviderTypes[key];
-                            var initObj = imageryProvider[key];
+                            var type = imageryProviderTypes[imageryProvider.type];
+                            var initObj = _.omit(imageryProvider, 'type');
 
-                            if (key === 'OSM') {
+                            if (imageryProvider.type === 'OSM') {
                                 if (initObj.url && initObj.url.indexOf('/{z}/{x}/{y}') === -1) {
                                     initObj.url = initObj.url + '/{z}/{x}/{y}.png';
                                 }
-                            } else if (key === 'BM') {
+                            } else if (imageryProvider.type === 'BM') {
                                 if (!initObj.imagerySet) {
                                     initObj.imagerySet = initObj.url;
                                 }
-                            } else if (key === 'WMS') {
+                            } else if (imageryProvider.type === 'WMS') {
                                 if (!initObj.params) {
                                     initObj.params = {
-                                        layers: initObj.layers
+                                        LAYERS: initObj.layers
                                     };
+                                    _.extend(initObj.params, initObj.parameters);
                                 }
                             }
                             layers.push(new ol.layer.Tile({
@@ -96,7 +88,8 @@ define(['underscore',
                         layers: layers,
                         target: mapDivId,
                         view: new ol.View({
-                            center: [0, 0],
+                            projection: ol.proj.get(properties.projection),
+                            center: ol.proj.transform([0, 0], 'EPSG:4326', properties.projection),
                             zoom: 3
                         })
                     });
@@ -238,7 +231,7 @@ define(['underscore',
 
             flyToGeometry: function (geometry) {
                 var point = geometry.getPoint();
-                var location = ol.proj.transform([point.longitude, point.latitude], 'EPSG:4326', 'EPSG:3857');
+                var location = ol.proj.transform([point.longitude, point.latitude], 'EPSG:4326', properties.projection);
                 var pan = ol.animation.pan({
                     duration: 2000,
                     source: /** @type {ol.Coordinate} */ (this.mapViewer.getView().getCenter())
@@ -250,15 +243,13 @@ define(['underscore',
 
             flyToRectangle: function (rectangle) {
                 if (rectangle.north === rectangle.south && rectangle.east === rectangle.west) {
-                    this.flyToGeometry({
-                        point: {
-                            longitude: rectangle.west,
-                            latitude: rectangle.north
-                        }
-                    });
+                    this.flyToGeometry(new Metacard.Geometry({
+                        type: "Point",
+                        coordinates: [rectangle.west, rectangle.north]
+                    }));
                 } else if (rectangle.north && rectangle.south && rectangle.east && rectangle.west) {
-                    var northWest = ol.proj.transform([rectangle.west, rectangle.north], 'EPSG:4326', 'EPSG:3857');
-                    var southEast = ol.proj.transform([rectangle.east, rectangle.south], 'EPSG:4326', 'EPSG:3857');
+                    var northWest = ol.proj.transform([rectangle.west, rectangle.north], 'EPSG:4326', properties.projection);
+                    var southEast = ol.proj.transform([rectangle.east, rectangle.south], 'EPSG:4326', properties.projection);
                     var coords = [];
                     coords.push(northWest[0]);
                     coords.push(southEast[1]);

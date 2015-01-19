@@ -232,6 +232,10 @@ define([
 
         });
 
+        MetaCard.Action = Backbone.AssociatedModel.extend({
+
+        });
+
         MetaCard.Metacard = Backbone.AssociatedModel.extend({
             url: '/services/catalog/',
 
@@ -257,8 +261,12 @@ define([
                     type: Backbone.One,
                     key: 'properties',
                     relatedModel: MetaCard.Properties
+                },
+                {
+                    type: Backbone.Many,
+                    key: 'actions',
+                    relatedModel: MetaCard.Action
                 }
-
             ]
         });
 
@@ -290,8 +298,6 @@ define([
                 }
             ],
             url: "/service/query",
-            syncUrl: "/services/catalog/query",
-            useAjaxSync: false,
             parse: function (resp) {
                 if (resp.data) {
                     return resp.data;
