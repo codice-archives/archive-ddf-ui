@@ -71,7 +71,7 @@ define([
                         return;
                     }
                     workspace = new Workspace.Model({name: this.viewModel.get('workspaceName')});
-                    this.model.get('workspaces').add(workspace);
+                    wreqr.vent.trigger('workspace:addworkspace', workspace);
                 }
                 if (this.records) {
                     workspace.get('metacards').add(this.records);

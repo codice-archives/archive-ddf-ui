@@ -363,6 +363,7 @@ define([
 
                 this.listenTo(wreqr.vent, 'workspace:tabshown', this.setupEvents);
                 this.listenTo(wreqr.vent, 'workspace:save', this.workspaceSave);
+                this.listenTo(wreqr.vent, 'workspace:addworkspace', this.addWorkspace);
                 this.listenTo(wreqr.vent, 'workspace:saveall', this.workspaceSave);
                 this.listenTo(wreqr.vent, 'workspace:editcancel', this.cancelEditWorkspaceList);
                 this.listenTo(wreqr.vent, 'workspace:searcheditcancel', this.workspaceCancelEdit);
@@ -408,6 +409,8 @@ define([
                 }
             },
 
+
+
             saveResultsToWorkspace: function(search, records) {
                 this.workspaceRegion.show(new WorkspaceSaveResults({model: this.model, search: search, records: records}), dir.forward);
             },
@@ -424,6 +427,11 @@ define([
                     }
                 }
                 wreqr.vent.trigger('workspace:show', dir.backward, this.currentWorkspace);
+            },
+
+            addWorkspace: function(workspace) {
+                this.model.get('workspaces').add(workspace);
+                this.realModel.set(this.model.attributes);
             },
 
             workspaceSave: function(search) {
