@@ -177,8 +177,18 @@ public class SearchController {
                     QueryResponse indexResponse = executeQuery(sourceId, request,
                             subject, properties);
 
+                    // query updated cache
+                    properties.put("mode", "cache");
+                    QueryResponse cachedResponse = executeQuery(null, request,
+                            subject, properties);
+
                     try {
-                        Search search = addQueryResponseToSearch(request, indexResponse);
+                        Search search;
+                        if (cachedResponse.getHits() == 0) {
+                            search = addQueryResponseToSearch(request, indexResponse);
+                        }else{
+                            search = addQueryResponseToSearch(request, cachedResponse);
+                        }
                         search.updateStatus(sourceId, indexResponse);
                         pushResults(request.getId(),
                                     controller.transform(search, request),
