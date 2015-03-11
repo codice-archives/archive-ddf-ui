@@ -14,6 +14,9 @@
  **/
 package org.codice.ddf.ui.searchui.query.controller;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Ordering;
 import ddf.action.Action;
 import ddf.action.ActionRegistry;
 import ddf.catalog.CatalogFramework;
@@ -33,6 +36,9 @@ import ddf.catalog.source.SourceUnavailableException;
 import ddf.catalog.source.UnsupportedQueryException;
 import ddf.catalog.transform.CatalogTransformerException;
 import ddf.catalog.transformer.metacard.geojson.GeoJsonMetacardTransformer;
+import ddf.catalog.util.impl.DistanceResultComparator;
+import ddf.catalog.util.impl.RelevanceResultComparator;
+import ddf.catalog.util.impl.TemporalResultComparator;
 import ddf.security.SecurityConstants;
 import ddf.security.Subject;
 import net.minidev.json.JSONArray;
@@ -47,6 +53,9 @@ import org.cometd.bayeux.server.ConfigurableServerChannel;
 import org.cometd.bayeux.server.ServerMessage;
 import org.cometd.bayeux.server.ServerSession;
 import org.cometd.server.ServerMessageImpl;
+import org.opengis.filter.expression.PropertyName;
+import org.opengis.filter.sort.SortBy;
+import org.opengis.filter.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,9 +64,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -166,6 +180,11 @@ public class SearchController {
             }
         });
 
+        final Comparator<Result> sortComparator = getResultComparator(request.getQuery());
+        final int maxResults = request.getQuery().getPageSize() > 0 ?
+            request.getQuery().getPageSize() : Integer.MAX_VALUE;
+        final List<Result> results = Collections.synchronizedList(new ArrayList<Result>());
+
         for (final String sourceId : request.getSourceIds()) {
             LOGGER.debug("Executing async query on: {}", sourceId);
             executorService.submit(new Runnable() {
@@ -175,7 +194,7 @@ public class SearchController {
                     // update index from federated sources
                     properties.put("mode", "index");
                     QueryResponse indexResponse = executeQuery(sourceId, request,
-                            subject, properties);
+                        subject, properties);
 
                     // query updated cache
                     properties.put("mode", "cache");
@@ -185,6 +204,17 @@ public class SearchController {
                     try {
                         Search search;
                         if (cachedResponse.getHits() == 0) {
+
+                            List<Result> sortedResults;
+                            synchronized(results){
+                                results.addAll(indexResponse.getResults());
+                                sortedResults = Ordering.from(sortComparator).immutableSortedCopy(results);
+                            }
+
+                            indexResponse.getResults().clear();
+                            indexResponse.getResults().addAll(sortedResults.size() > maxResults ?
+                                    sortedResults.subList(0, maxResults): sortedResults);
+
                             search = addQueryResponseToSearch(request, indexResponse);
                         }else{
                             search = addQueryResponseToSearch(request, cachedResponse);
@@ -204,6 +234,30 @@ public class SearchController {
                 }
             });
         }
+    }
+
+    private Comparator<Result> getResultComparator(Query query) {
+        Comparator<Result> sortComparator = new RelevanceResultComparator(SortOrder.DESCENDING);
+        SortBy sortBy = query.getSortBy();
+
+        if (sortBy != null && sortBy.getPropertyName() != null) {
+            PropertyName sortingProp = sortBy.getPropertyName();
+            String sortType = sortingProp.getPropertyName();
+            SortOrder sortOrder = (sortBy.getSortOrder() == null) ? SortOrder.DESCENDING
+                : sortBy.getSortOrder();
+
+            // Temporal searches are currently sorted by the effective time
+            if (Metacard.EFFECTIVE.equals(sortType) || Result.TEMPORAL.equals(sortType)) {
+                sortComparator = new TemporalResultComparator(sortOrder);
+            } else if (Metacard.CREATED.equals(sortType) || Metacard.MODIFIED.equals(sortType)) {
+                sortComparator = new TemporalResultComparator(sortOrder, sortType);
+            } else if (Result.DISTANCE.equals(sortType)) {
+                sortComparator = new DistanceResultComparator(sortOrder);
+            } else if (Result.RELEVANCE.equals(sortType)) {
+                sortComparator = new RelevanceResultComparator(sortOrder);
+            }
+        }
+        return sortComparator;
     }
 
     private Search addQueryResponseToSearch(SearchRequest searchRequest,
