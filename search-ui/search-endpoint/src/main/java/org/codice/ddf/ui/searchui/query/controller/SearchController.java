@@ -22,8 +22,10 @@ import ddf.action.ActionRegistry;
 import ddf.catalog.CatalogFramework;
 import ddf.catalog.data.AttributeDescriptor;
 import ddf.catalog.data.Metacard;
+import ddf.catalog.data.MetacardImpl;
 import ddf.catalog.data.MetacardType;
 import ddf.catalog.data.Result;
+import ddf.catalog.data.ResultImpl;
 import ddf.catalog.federation.FederationException;
 import ddf.catalog.operation.Query;
 import ddf.catalog.operation.QueryRequest;
@@ -66,6 +68,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -158,6 +161,7 @@ public class SearchController {
     public void executeQuery(final SearchRequest request, final ServerSession session, final Subject subject) {
 
         final SearchController controller = this;
+        final List<Result> cachedResults = Collections.synchronizedList(new ArrayList<Result>());
 
         if (!cacheDisabled) {
             executorService.submit(new Runnable() {
@@ -169,6 +173,10 @@ public class SearchController {
                     // search cache for all sources
                     QueryResponse response = executeQuery(null, request,
                             subject, properties);
+
+                    synchronized(cachedResults){
+                        cachedResults.addAll(response.getResults());
+                    }
 
                     try {
                         Search search = addQueryResponseToSearch(request, response);
@@ -183,6 +191,8 @@ public class SearchController {
                 }
             });
 
+            
+
             for (final String sourceId : request.getSourceIds()) {
                 LOGGER.debug("Executing async query on: {}", sourceId);
                 executorService.submit(new Runnable() {
@@ -190,7 +200,6 @@ public class SearchController {
                     public void run() {
                         Map<String, Serializable> properties = new HashMap<String, Serializable>();
                         // update index from federated sources
-                        properties.put("mode", "index");
                         QueryResponse indexResponse = executeQuery(sourceId, request,
                                 subject, properties);
 
@@ -198,6 +207,61 @@ public class SearchController {
                         properties.put("mode", "cache");
                         QueryResponse cachedResponse = executeQuery(null, request,
                                 subject, properties);
+
+                        // For each result recevied by source, remove it's record from cachedResult
+                        synchronized(cachedResults){
+                            List<Result> iResults = indexResponse.getResults();
+                            List<Result> results = cachedResponse.getResults();
+                            List<Result> newResults = new ArrayList<Result>();
+
+                            for(Result result : iResults){
+                                String id = result.getMetacard().getId();
+                                Iterator<Result> iter = cachedResults.listIterator(); 
+                                
+                                if(!iter.hasNext() && results.size()==0){
+                                    // Add result to newResults
+                                    Metacard m = new MetacardImpl(result.getMetacard());
+                                    Result newResult = new ResultImpl(m);
+                                    newResults.add(newResult);
+                                }else{
+                                    while(iter.hasNext()){
+                                        Result cResult = iter.next();
+
+                                        if (cResult.getMetacard().getId().equals(id)){
+                                            iter.remove();
+                                            continue;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // For each result in cachedResponse which has a match in cachedResults, 
+                            //     append '(cached)' to title. 
+                            Iterator<Result> iter = results.listIterator();
+                            while(iter.hasNext()){
+                                Result result = iter.next();
+                                String id = result.getMetacard().getId();
+
+                                MetacardImpl metacard = new MetacardImpl(result.getMetacard());
+
+                                for(Result cResult : cachedResults){
+                                    if (cResult.getMetacard().getId().equals(id)){
+                                        String title = metacard.getTitle();
+                                        title += " (cached)";
+                                        metacard.setTitle(title);
+                                        continue;
+                                    }
+                                }
+
+                                Metacard m = new MetacardImpl(metacard);
+
+                                Result newResult = new ResultImpl(m);
+                                newResults.add(newResult);
+                            }
+                            LOGGER.debug("Appending {} results, from {} cached results", results.size(), cachedResults.size());
+                            cachedResponse.getResults().clear();
+                            cachedResponse.getResults().addAll(newResults);
+                        }
 
                         try {
                             Search search = addQueryResponseToSearch(request, cachedResponse);
