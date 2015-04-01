@@ -158,6 +158,10 @@ public class SearchController {
     public void executeQuery(final SearchRequest request, final ServerSession session, final Subject subject) {
 
         final SearchController controller = this;
+        final Comparator<Result> sortComparator = getResultComparator(request.getQuery());
+        final int maxResults = request.getQuery().getPageSize() > 0 ?
+            request.getQuery().getPageSize() : Integer.MAX_VALUE;
+        final List<Result> results = Collections.synchronizedList(new ArrayList<Result>());
 
         if (!cacheDisabled) {
             executorService.submit(new Runnable() {
@@ -168,6 +172,11 @@ public class SearchController {
                     properties.put("mode", "cache");
                     // search cache for all sources
                     QueryResponse response = executeQuery(null, request,
+                            subject, properties);
+
+                    // query updated cache
+                    properties.put("mode", "cache");
+                    QueryResponse cachedResponse = executeQuery(null, request,
                             subject, properties);
 
                     try {
@@ -200,7 +209,21 @@ public class SearchController {
                                 subject, properties);
 
                         try {
-                            Search search = addQueryResponseToSearch(request, cachedResponse);
+                            Search search;
+                            if (cachedResponse.getHits() == 0) {
+                                List<Result> sortedResults;
+                                synchronized(results){
+                                    results.addAll(indexResponse.getResults());
+                                    sortedResults = Ordering.from(sortComparator).immutableSortedCopy(results);
+                                }
+
+                                indexResponse.getResults().clear();
+                                indexResponse.getResults().addAll(sortedResults.size() > maxResults ?
+                                        sortedResults.subList(0, maxResults): sortedResults);
+                                search = addQueryResponseToSearch(request, indexResponse);
+                            }else{
+                                search = addQueryResponseToSearch(request, cachedResponse);
+                            }
                             search.updateStatus(sourceId, indexResponse);
                             pushResults(request.getId(),
                                     controller.transform(search, request),
@@ -217,10 +240,6 @@ public class SearchController {
                 });
             }
         } else {
-            final Comparator<Result> sortComparator = getResultComparator(request.getQuery());
-            final int maxResults = request.getQuery().getPageSize() > 0 ?
-                    request.getQuery().getPageSize() : Integer.MAX_VALUE;
-            final List<Result> results = Collections.synchronizedList(new ArrayList<Result>());
 
             for (final String sourceId : request.getSourceIds()) {
                 LOGGER.debug("Executing async query without cache on: {}", sourceId);
