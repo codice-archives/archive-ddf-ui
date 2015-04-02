@@ -51,11 +51,11 @@ define([
             },
             initialize: function () {
 
-                if(this.model.get('hash')) {
-                    this.hash = this.model.get('hash');
+                if(this.model.get('metacard').get('hash')) {
+                    this.hash = this.model.get('metacard').get('hash');
                 }
-                var collection = this.model.collection;
-                var index = collection.indexOf(this.model.parents[0]);
+                var collection = this.model.get('metacard').collection;
+                var index = collection.indexOf(this.model.get('metacard').parents[0]);
 
                 if (index !== 0) {
                     this.prevModel = collection.at(index - 1);
@@ -76,12 +76,12 @@ define([
             serializeData: function() {
                 var type;
                 if (this.types) {
-                    var typeObj = this.types.findWhere({value: this.model.get('properties').get('metadata-content-type')});
+                    var typeObj = this.types.findWhere({value: this.model.get('metacard').get('properties').get('metadata-content-type')});
                     if (typeObj) {
                         type = typeObj.get('name');
                     }
                 }
-                return _.extend(this.model.toJSON(), {mapAvailable: maptype.isMap(), url: this.model.url, clientId: Cometd.Comet.getClientId(), mappedType: type});
+                return _.extend(this.model.get('metacard').toJSON(), {mapAvailable: maptype.isMap(), url: this.model.get('metacard').url, clientId: Cometd.Comet.getClientId(), mappedType: type});
             },
             updateIterationControls: function () {
                 if (_.isUndefined(this.prevModel)) {
@@ -103,7 +103,7 @@ define([
                 this.hash = e.target.hash;
             },
             viewLocation: function () {
-                wreqr.vent.trigger('search:mapshow', this.model);
+                wreqr.vent.trigger('search:mapshow', this.model.get('metacard'));
             },
             invalidateList: function () {
                 delete this.prevModel;
@@ -112,23 +112,23 @@ define([
             },
             previousRecord: function () {
                 if (this.prevModel) {
-                    this.prevModel.get("metacard").set({
+                    this.prevModel.set({
                         hash: this.hash
                     });
-                    wreqr.vent.trigger('metacard:selected', dir.downward, this.prevModel.get("metacard"));
+                    wreqr.vent.trigger('metacard:selected', dir.downward, this.prevModel);
                 }
             },
             nextRecord: function () {
                 if (this.nextModel) {
-                    this.nextModel.get("metacard").set({
+                    this.nextModel.set({
                         hash: this.hash
                     });
-                    wreqr.vent.trigger('metacard:selected', dir.upward, this.nextModel.get("metacard"));
+                    wreqr.vent.trigger('metacard:selected', dir.upward, this.nextModel);
                 }
             },
             metacardActionModal: function (e) {
                 var index = e.target.hash.replace('#', '');
-                var action = this.model.get('actions').at(index);
+                var action = this.model.get('metacard').get('actions').at(index);
                 var modal = new Metacard.ActionModal({model: action});
 
                 wreqr.vent.trigger('showModal', modal);
