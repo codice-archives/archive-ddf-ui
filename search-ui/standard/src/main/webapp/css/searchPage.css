@@ -1521,29 +1521,29 @@ a.pause:hover, a.pause:focus {
 .heading-with-help-tip i {
     display: inline-block;
 }
-.keyword-heading-with-help-tip i {
+.heading-with-help-tip i {
     display: inline-block;
 }
-.keyword-heading-with-help-tip h6 {
+.heading-with-help-tip h6 {
     display: inline-block;
 }
-.keyword-heading-with-help-tip .popover {
+.heading-with-help-tip .popover {
     background-color: #555555;
     margin-top: 30px;
     border: 1px solid #555555;
 }
-.keyword-heading-with-help-tip .popover.right > .arrow {
+.heading-with-help-tip .popover.right > .arrow {
     top: 15% !important;
     border-right-color: #555555;
 }
-.keyword-heading-with-help-tip .popover.right > .arrow:after {
+.heading-with-help-tip .popover.right > .arrow:after {
     border-right-color: #555555;
 }
 
-.keyword-heading-with-help-tip .popover {
+.heading-with-help-tip .popover {
     margin-top: 30px;
 }
-.keyword-heading-with-help-tip .popover.right > .arrow {
+.heading-with-help-tip .popover.right > .arrow {
     top: 20% !important;
 }
 
