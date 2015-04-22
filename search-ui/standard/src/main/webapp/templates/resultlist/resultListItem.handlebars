@@ -30,4 +30,9 @@
     <div class="pull-right small-text" title="Modified Date">
         {{momentHelp attributes.properties.attributes.modified fromNow=function}}
     </div>
+    {{#if cachedOn}}
+       <div class="pull-left small-text" title="Cached Date">
+           Cached on: {{cachedOn}}
+       </div>
+    {{/if}}
 </td>

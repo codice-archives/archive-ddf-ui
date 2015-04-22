@@ -23,8 +23,10 @@ import ddf.catalog.CatalogFramework;
 import ddf.catalog.data.Attribute;
 import ddf.catalog.data.AttributeDescriptor;
 import ddf.catalog.data.Metacard;
+import ddf.catalog.data.MetacardImpl;
 import ddf.catalog.data.MetacardType;
 import ddf.catalog.data.Result;
+import ddf.catalog.data.ResultImpl;
 import ddf.catalog.federation.FederationException;
 import ddf.catalog.operation.Query;
 import ddf.catalog.operation.QueryRequest;
@@ -72,6 +74,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -81,6 +84,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.text.SimpleDateFormat;
 
 /**
  * The SearchController class handles all of the query threads for asynchronous queries.
@@ -168,6 +172,11 @@ public class SearchController {
     public void executeQuery(final SearchRequest request, final ServerSession session, final Subject subject) {
 
         final SearchController controller = this;
+        final List<Result> cachedResults = Collections.synchronizedList(new ArrayList<Result>());
+        final Comparator<Result> sortComparator = getResultComparator(request.getQuery());
+        final int maxResults = request.getQuery().getPageSize() > 0 ?
+            request.getQuery().getPageSize() : Integer.MAX_VALUE;
+        final List<Result> results = Collections.synchronizedList(new ArrayList<Result>());
 
         if (!cacheDisabled) {
             executorService.submit(new Runnable() {
@@ -179,6 +188,8 @@ public class SearchController {
                     // search cache for all sources
                     QueryResponse response = executeQuery(null, request,
                             subject, properties);
+
+                    cachedResults.addAll(response.getResults());
 
                     try {
                         Search search = addQueryResponseToSearch(request, response);
@@ -200,7 +211,6 @@ public class SearchController {
                     public void run() {
                         Map<String, Serializable> properties = new HashMap<String, Serializable>();
                         // update index from federated sources
-                        properties.put("mode", "index");
                         QueryResponse indexResponse = executeQuery(sourceId, request,
                                 subject, properties);
 
@@ -209,8 +219,71 @@ public class SearchController {
                         QueryResponse cachedResponse = executeQuery(null, request,
                                 subject, properties);
 
+                        // For each result recevied by source, remove it's record from cachedResult
+                        synchronized(cachedResults){
+                            List<Result> iResults = indexResponse.getResults();
+                            List<Result> cResults = cachedResponse.getResults();
+                            List<Result> newResults = new ArrayList<Result>();
+
+                            for(Result result : iResults){
+                                String id = result.getMetacard().getId();
+                                Iterator<Result> cachedResultsIter = cachedResults.listIterator(); 
+                                
+                                if(!cachedResultsIter.hasNext() && cResults.size()==0){
+                                    // Add result to newResults
+                                    Metacard m = new MetacardImpl(result.getMetacard());
+                                    Result newResult = new ResultImpl(m);
+                                    newResults.add(newResult);
+                                }else{
+                                    while(cachedResultsIter.hasNext()){
+                                        Result cachedResult = cachedResultsIter.next();
+
+                                        if (cachedResult.getMetacard().getId().equals(id)){
+                                            cachedResultsIter.remove();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // For each result in cachedResponse which has a match in cachedResults, 
+                            //     set cached date to result
+                            Iterator<Result> cachedResponseIter = cResults.listIterator();
+                            while(cachedResponseIter.hasNext()){
+                                Result result = cachedResponseIter.next();
+                                String id = result.getMetacard().getId();
+
+                                ResultImpl newResult = new ResultImpl(result.getMetacard());
+
+                                for(Result cachedResult : cachedResults){
+                                    if (cachedResult.getMetacard().getId().equals(id)){
+                                        newResult.setCachedDate(cachedResult.getCachedDate());
+                                        break;
+                                    }
+                                }
+                                newResults.add(newResult);
+                            }
+                            LOGGER.debug("Appending {} results, from {} cached results", cResults.size(), cachedResults.size());
+                            cachedResponse.getResults().clear();
+                            cachedResponse.getResults().addAll(newResults);
+                        }
+
                         try {
-                            Search search = addQueryResponseToSearch(request, cachedResponse);
+                            Search search;
+                            if (cachedResponse.getHits() == 0) {
+                                List<Result> sortedResults;
+                                synchronized(results){
+                                    results.addAll(indexResponse.getResults());
+                                    sortedResults = Ordering.from(sortComparator).immutableSortedCopy(results);
+                                }
+
+                                indexResponse.getResults().clear();
+                                indexResponse.getResults().addAll(sortedResults.size() > maxResults ?
+                                        sortedResults.subList(0, maxResults): sortedResults);
+                                search = addQueryResponseToSearch(request, indexResponse);
+                            }else{
+                                search = addQueryResponseToSearch(request, cachedResponse);
+                            }
                             search.updateStatus(sourceId, indexResponse);
                             pushResults(request.getId(),
                                     controller.transform(search, request),
@@ -227,10 +300,6 @@ public class SearchController {
                 });
             }
         } else {
-            final Comparator<Result> sortComparator = getResultComparator(request.getQuery());
-            final int maxResults = request.getQuery().getPageSize() > 0 ?
-                    request.getQuery().getPageSize() : Integer.MAX_VALUE;
-            final List<Result> results = Collections.synchronizedList(new ArrayList<Result>());
 
             for (final String sourceId : request.getSourceIds()) {
                 LOGGER.debug("Executing async query without cache on: {}", sourceId);
@@ -462,6 +531,12 @@ public class SearchController {
 
         addObject(rootObject, Search.METACARD, metacardJson);
 
+        Date cachedDate = result.getCachedDate();
+        if(cachedDate != null){
+            final SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+            String cachedOn = df.format(cachedDate);
+            addObject(rootObject, Search.CACHED, cachedOn);
+        }
 
         if (result.getMetacard().getMetacardType() != null &&
                 !StringUtils.isBlank(result.getMetacard().getMetacardType().getName())) {

@@ -85,7 +85,7 @@ define([
             },
 
             changeRecordSelection: function(e) {
-                this.model.set('selectedForSave', e.target.checked, {silent: true});
+                this.model.get('metacard').set('selectedForSave', e.target.checked, {silent: true});
             },
 
             resultSelectMode: function() {
@@ -108,7 +108,12 @@ define([
                 //but our model is pretty deep and this was causing some big performance issues
                 //so with this change we simply need up adapt our templates to work with backbone
                 //objects instead of flat json records
-                return _.extend({}, this.model, {resultSelect: this.resultSelect});
+                var cachedDate = "";
+
+                if (this.model) {
+                    cachedDate = this.model.get('cached');
+                }
+                return _.extend({}, this.model.get('metacard'), {resultSelect: this.resultSelect}, {cachedOn: cachedDate});
             },
 
             onRender : function(){
@@ -129,7 +134,7 @@ define([
             className: 'table resultTable',
             childViewOptions : function(model){
                 return {
-                    model : model.get('metacard')
+                    model : model
                 };
             },
             appendHtml: function (collectionView, childView, index) {
