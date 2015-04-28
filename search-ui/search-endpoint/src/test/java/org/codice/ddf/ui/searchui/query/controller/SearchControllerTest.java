@@ -153,7 +153,7 @@ public class SearchControllerTest {
     }
     
     /**
-     * Verify that the CatalogFramework does not use the cache (ie. the CatalogFramework 
+     * Verify that the CatalogFramework does not use the cache (i.e. the CatalogFramework 
      * is called WITH the query request property mode=cache).
      */
     @Test
@@ -195,7 +195,7 @@ public class SearchControllerTest {
     }
     
     /**
-     * Verify that the CatalogFramework does not use the cache (ie. the CatalogFramework 
+     * Verify that the CatalogFramework does not use the cache (i.e. the CatalogFramework 
      * is called WITHOUT the query request property mode=cache).
      */
     @Test
