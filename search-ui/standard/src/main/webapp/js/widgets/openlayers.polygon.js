@@ -58,8 +58,12 @@ define([
             modelToPolygon: function (model) {
                 var polygon = model.get('polygon');
                 var coords = [];
-                if (polygon) {
-                    _.each(polygon, function (item) {
+                var setArr = _.uniq(polygon);
+                if(setArr.length < 3){
+                    return;
+                }
+                if (setArr) {
+                    _.each(setArr, function (item) {
                         coords.push(ol.proj.transform([item[0], item[1]], 'EPSG:4326', properties.projection));
                     });
                 }
