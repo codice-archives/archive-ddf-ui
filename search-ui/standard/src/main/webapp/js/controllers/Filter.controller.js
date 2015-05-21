@@ -93,18 +93,19 @@ define([
                         _.each(pairs, function (pair) {
                             if (!_.contains(currentFieldNames, pair[0])) {
                                 // doesn't exist.  lets add.
+                                if (pair[1].indexed === true) {
+                                    var fieldType = pair[1].format.toLowerCase();
+                                    // lets convert to a number type.
+                                    if (_.contains(Properties.filters.numberTypes, fieldType)) {
+                                        fieldType = 'number';
+                                    }
 
-                                var fieldType = pair[1].toLowerCase();
-                                // lets convert to a number type.
-                                if (_.contains(Properties.filters.numberTypes, fieldType)) {
-                                    fieldType = 'number';
+                                    var fieldObj = {
+                                        name: pair[0],
+                                        type: fieldType
+                                    };
+                                    array.push(fieldObj);
                                 }
-
-                                var fieldObj = {
-                                    name: pair[0],
-                                    type: fieldType
-                                };
-                                array.push(fieldObj);
                             }
                         });
                     });
