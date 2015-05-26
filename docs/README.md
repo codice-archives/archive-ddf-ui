@@ -3,7 +3,7 @@ Search UI ${project.version} Documentation
 
 # Overview
 
-This page is the central location for documentation related to the DDF Catalog application
+This page is the central location for documentation related to the DDF Search UI application
 
 # Stable Version
 
