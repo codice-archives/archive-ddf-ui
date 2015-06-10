@@ -200,7 +200,7 @@ define([
                     lon = this.get('lon'),
                     radius = this.get('radius'),
                     polygon = this.get('polygon');
-                    // Order of conditionals should be preserved as changes to radius values in the UI do not clear polygon values (intended)
+                    // The order of the following 'if else' conditionals should be preserved so that radius values are used when polygon values remain. This is because changes to radius values in the UI do not clear polygon values (intended)
                 if (lat && lon && radius) {
                     filters.push(new Filter.Model({
                         fieldName: 'anyGeo',
@@ -302,7 +302,7 @@ define([
                     lon = this.get('lon'),
                     radius = this.get('radius'),
                     polygon = this.get('polygon');
-                // Order of conditionals should be preserved as changes to radius values in the UI do not clear polygon values (intended)
+                    // The order of the following 'if else' conditionals should be preserved so that radius values are used when polygon values remain. This is because changes to radius values in the UI do not clear polygon values (intended)
                 if (lat && lon && radius) {
                     var point = 'POINT(' + lon + ' ' + lat + ')';
                     filters.push('DWITHIN(anyGeo, ' + point + ', ' + radius + ', meters)');
